@@ -20,7 +20,7 @@ CR      EQU     $0D             ASCII code for Carriage Return
 LF      EQU     $0A             ASCII code for Line Feed
 MESSAGE DC.B    'Hello, My name is Brandon Roth',CR,LF
         DC.B    'This class is a lot of fun. I am enjoying the material.',CR,LF
-        DC.B    'I hope to learn more about hardware after using this simulator.',CR,LF
+        DC.B    'I just changed this program, is github smart enough?',CR,LF
         DC.B    '',CR,LF
         DC.B    'Thank you for listening',0
 
