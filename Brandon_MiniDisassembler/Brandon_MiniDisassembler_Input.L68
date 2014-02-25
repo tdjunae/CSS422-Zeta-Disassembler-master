@@ -1,0 +1,24 @@
+00007FC0 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.14.00
+Created On: 2/25/2014 1:43:43 AM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :Brandon's Mini Disassembler Input
+00000000                             3  * Written by :Brandon Roth
+00000000                             4  * Date       :2/23/2014
+00000000                             5  * Description:***
+00000000                             6  *-----------------------------------------------------------
+00007FC0                             7  START   ORG     $7FC0
+00007FC0                             8  
+00007FC0  103C 0014                  9          MOVE.B  #$14,D0         Moves the hex value 14 into data register D0
+00007FC4                            10          
+00007FC4                            11          END     START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               7FC0
