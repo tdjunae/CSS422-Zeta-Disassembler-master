@@ -1,6 +1,6 @@
 00001000 Starting Address
 Assembler used: EASy68K Editor/Assembler v5.14.00
-Created On: 2/26/2014 5:07:00 AM
+Created On: 2/26/2014 4:51:38 PM
 
 00000000                             1  *-----------------------------------------------------------
 00000000                             2  * Title      :Brandon's Mini Disassembler
@@ -10,7 +10,7 @@ Created On: 2/26/2014 5:07:00 AM
 00000000                             6  *-----------------------------------------------------------
 00001000                             7  START   ORG     $1000
 00001000                             8  
-00001000  43F9 0000103C              9          LEA     MESSAGE,A1      Loads MESSAGE into address register A1
+00001000  43F9 00001064              9          LEA     MESSAGE,A1      Loads MESSAGE into address register A1
 00001006  103C 000E                 10          MOVE.B  #14,D0          Moves the number 14 into data register D0
 0000100A  4E4F                      11          TRAP    #15             Displays Message
 0000100C                            12          
@@ -46,7 +46,7 @@ Created On: 2/26/2014 5:07:00 AM
 00001026                            42  *Decode a NOP OP--------------------------------------------
 00001026  123C 0004                 43          MOVE.B  #NOPOP,D1  *Load the first 4 bits (really a byte) of NOP into D1
 0000102A                            44          *Compare the first 4 bits of the first OP CODE with first 4 of NOP. 
-0000102A                            45          *If equal we have a NOP instruction. branch to 'ISNOP' and decode the rest
+0000102A                            45          *If equal we have a NOP instruction.Branch to 'ISNOP' and decode the rest
 0000102A  B200                      46          CMP.B   D0,D1
 0000102C  6700 0002                 47          BEQ     ISNOP
 00001030                            48          
@@ -55,23 +55,44 @@ Created On: 2/26/2014 5:07:00 AM
 00001030                            51          
 00001030                            52  *Branch to correct OP-------------------------------------------        
 00001030                            53  ISNOP   
-00001030  =00000E71                 54  NOPBODY EQU $0E71   *The rest of the NOP instruction equals this hex value
-00001030  3010                      55          MOVE.W  (A0),D0
-00001032  323C 0E71                 56          MOVE.W  #NOPBODY,D1
-00001036                            57          
-00001036                            58  *ISMOVE  *is a move instruction, try to decode rest. need a jsr or something to get here?
-00001036                            59          
-00001036                            60  *-----------------------------------------------------------        
-00001036                            61  * End of Mini Disassembler
-00001036                            62  *-----------------------------------------------------------    
-00001036                            63          
-00001036  103C 0009                 64  THEEND  MOVE.B  #9,D0
-0000103A  4E4F                      65          TRAP    #15             Halt Simulator        
-0000103C                            66          
-0000103C  =0000000D                 67  CR      EQU     $0D             ASCII code for Carriage Return
-0000103C  =0000000A                 68  LF      EQU     $0A             ASCII code for Line Feed
-0000103C= 48 65 79 2C 20 67 ...     69  MESSAGE DC.B    'Hey, going to try to disassemble MOVE.B',CR,LF,0
-00001066                            70          END     START
+00001030  =00004E71                 54  NOPALL  EQU $4E71   *The entire NOP instruction equals this constant hex value
+00001030  3010                      55          MOVE.W  (A0),D0 *Move the WHOLE instruction from mem into D0
+00001032                            56          *need to clear the first 4 MSB bits again, so I can compare just the last
+00001032                            57          *12 bits to the last 12 bits of the NOP instruction...
+00001032  323C 4E71                 58          MOVE.W  #NOPALL,D1 *Move the entire NOP instruction into D1
+00001036                            59          *Compare D0 to D1, if equal we found a match, print some message.
+00001036                            60          *If not equal, there was some syntax error, print error message.
+00001036  B240                      61          CMP.W   D0,D1
+00001038  6700 0004                 62          BEQ     CORRECTNOP
+0000103C  6010                      63          BRA.S   ERRORNOP
+0000103E                            64  CORRECTNOP
+0000103E                            65          *Output some message, hey we found a NOP or something...
+0000103E  43F9 0000108E             66          LEA     FOUNDNOP,A1  *Loads FOUNDNOP into address register A1
+00001044  103C 000E                 67          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+00001048  4E4F                      68          TRAP    #15         *Displays Message
+0000104A  6000 0012                 69          BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
+0000104E                            70  ERRORNOP
+0000104E                            71          *Output some error message, hey incorrect NOP syntax or something...
+0000104E  43F9 000010A2             72          LEA     BADNOP,A1  *Loads BADNOP into address register A1
+00001054  103C 000E                 73          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+00001058  4E4F                      74          TRAP    #15         *Displays Message
+0000105A  6000 0002                 75          BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
+0000105E                            76          
+0000105E                            77  *ISMOVE  *is a move instruction, try to decode rest. need a jsr or something to get here?
+0000105E                            78          
+0000105E                            79  *-----------------------------------------------------------        
+0000105E                            80  * End of Mini Disassembler
+0000105E                            81  *-----------------------------------------------------------    
+0000105E                            82          
+0000105E  103C 0009                 83  THEEND  MOVE.B  #9,D0
+00001062  4E4F                      84          TRAP    #15             Halt Simulator        
+00001064                            85          
+00001064  =0000000D                 86  CR      EQU     $0D             ASCII code for Carriage Return
+00001064  =0000000A                 87  LF      EQU     $0A             ASCII code for Line Feed
+00001064= 48 65 79 2C 20 67 ...     88  MESSAGE DC.B    'Hey, going to try to disassemble MOVE.B',CR,LF,0
+0000108E= 48 65 79 2C 20 66 ...     89  FOUNDNOP    DC.B    'Hey, found a NOP!',CR,LF,0
+000010A2= 48 65 79 2C 20 73 ...     90  BADNOP  DC.B    'Hey, something is wrong with this NOP!',CR,LF,0
+000010CB                            91          END     START
 
 No errors detected
 No warnings generated
@@ -80,12 +101,16 @@ No warnings generated
 SYMBOL TABLE INFORMATION
 Symbol-name         Value
 -------------------------
+BADNOP              10A2
+CORRECTNOP          103E
 CR                  D
+ERRORNOP            104E
+FOUNDNOP            108E
 ISNOP               1030
 LF                  A
-MESSAGE             103C
-NOPBODY             E71
+MESSAGE             1064
+NOPALL              4E71
 NOPOP               4
 START               1000
 START2              7FC0
-THEEND              1036
+THEEND              105E

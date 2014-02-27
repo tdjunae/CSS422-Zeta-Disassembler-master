@@ -51,17 +51,28 @@ NOPOP   EQU $04   *Store as byte, but I really only care about first 4 bits
         
 *Branch to correct OP-------------------------------------------        
 ISNOP   
-NOPBODY EQU $0E71   *The rest of the NOP instruction equals this hex value
-        MOVE.W  (A0),D0 *Move the WHOLE instruction into D0
+NOPALL  EQU $4E71   *The entire NOP instruction equals this constant hex value
+        MOVE.W  (A0),D0 *Move the WHOLE instruction from mem into D0
         *need to clear the first 4 MSB bits again, so I can compare just the last
         *12 bits to the last 12 bits of the NOP instruction...
-        MOVE.W  #NOPBODY,D1 *Move the 'rest' of the instruction binary code into D1
-        *Compare D0 to D1, I could just compare the whole word value in memory
-        *to the whole word value of a NOP instruction (since NOP is constant),
-        *but I won't since it would be too easy :)
-        *
+        MOVE.W  #NOPALL,D1 *Move the entire NOP instruction into D1
+        *Compare D0 to D1, if equal we found a match, print some message.
+        *If not equal, there was some syntax error, print error message.
+        CMP.W   D0,D1
+        BEQ     CORRECTNOP
+        BRA.S   ERRORNOP
+CORRECTNOP
         *Output some message, hey we found a NOP or something...
-        *
+        LEA     FOUNDNOP,A1 *Loads FOUNDNOP into address register A1
+        MOVE.B  #14,D0      *Moves the number 14 into data register D0
+        TRAP    #15         *Displays Message
+        BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
+ERRORNOP
+        *Output some error message, hey incorrect NOP syntax or something...
+        LEA     BADNOP,A1   *Loads BADNOP into address register A1
+        MOVE.B  #14,D0      *Moves the number 14 into data register D0
+        TRAP    #15         *Displays Message
+        BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
         
 *ISMOVE  *is a move instruction, try to decode rest. need a jsr or something to get here?
         
@@ -75,6 +86,8 @@ THEEND  MOVE.B  #9,D0
 CR      EQU     $0D             ASCII code for Carriage Return
 LF      EQU     $0A             ASCII code for Line Feed
 MESSAGE DC.B    'Hey, going to try to disassemble MOVE.B',CR,LF,0
+FOUNDNOP    DC.B    'Hey, found a NOP!',CR,LF,0
+BADNOP  DC.B    'Hey, something is wrong with this NOP!',CR,LF,0
         END     START
         
 *~Font name~Courier New~
