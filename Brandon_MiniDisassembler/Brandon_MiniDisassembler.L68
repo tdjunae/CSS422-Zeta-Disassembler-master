@@ -1,6 +1,6 @@
 00001000 Starting Address
 Assembler used: EASy68K Editor/Assembler v5.14.00
-Created On: 2/26/2014 4:51:38 PM
+Created On: 2/26/2014 5:18:08 PM
 
 00000000                             1  *-----------------------------------------------------------
 00000000                             2  * Title      :Brandon's Mini Disassembler
@@ -10,7 +10,7 @@ Created On: 2/26/2014 4:51:38 PM
 00000000                             6  *-----------------------------------------------------------
 00001000                             7  START   ORG     $1000
 00001000                             8  
-00001000  43F9 00001064              9          LEA     MESSAGE,A1      Loads MESSAGE into address register A1
+00001000  43F9 00001062              9          LEA     MESSAGE,A1      Loads MESSAGE into address register A1
 00001006  103C 000E                 10          MOVE.B  #14,D0          Moves the number 14 into data register D0
 0000100A  4E4F                      11          TRAP    #15             Displays Message
 0000100C                            12          
@@ -18,81 +18,81 @@ Created On: 2/26/2014 4:51:38 PM
 0000100C                            14  * Start of Mini Disassembler
 0000100C                            15  *-----------------------------------------------------------        
 0000100C                            16  
-0000100C  =00007FC0                 17  START2  EQU $00007FC0
+0000100C  =00007FC0                 17  START2  EQU $7FC0
 0000100C  =00000004                 18  NOPOP   EQU $04   *Store as byte, but I really only care about first 4 bits
 0000100C                            19  *MOVEOP  EQU %00 *First two bits of move are always 00
 0000100C                            20          
 0000100C                            21          *Load starting location of test input file into A0
-0000100C  207C 00007FC0             22          MOVEA.L #START2,A0  
-00001012                            23          *Move byte data at (A0) into D0. D0 is now the first 8 bits of the first
-00001012                            24          *OP instruction from the test input file
-00001012  1010                      25          MOVE.B  (A0),D0
-00001014                            26          *Clear the first 4 bits from 8 bit value in D0. I am doing this so we retain
-00001014                            27          *just the last 4 bits. These LAST 4 bits are FIRST 4 bits the of the first OP
-00001014                            28          *CODE. By using only the first 4 bits of an instruction, we can begin to
-00001014                            29          *narrow down which particular OP code the instruction actually is!
-00001014  0880 0000                 30          BCLR.L  #$00,D0 
-00001018  0880 0001                 31          BCLR.L  #$01,D0
-0000101C  0880 0002                 32          BCLR.L  #$02,D0
-00001020  0880 0003                 33          BCLR.L  #$03,D0
-00001024                            34          *Now I need to shift these 4 bit values right by 4 bits, so that these 4 bits
-00001024                            35          *are in the LSB position. Then I can begin to compare this value with others 
-00001024                            36          *and start decoding this OP CODE.
-00001024  E848                      37          LSR.W   #$04,D0
-00001026                            38          *Now I know the order in which the opcodes will appear, but later I will
-00001026                            39          *need to keep loading opcode data into some register and testing until we
-00001026                            40          *find a hit with the first four bits. then JSR into some subroutine.   
-00001026                            41  
-00001026                            42  *Decode a NOP OP--------------------------------------------
-00001026  123C 0004                 43          MOVE.B  #NOPOP,D1  *Load the first 4 bits (really a byte) of NOP into D1
-0000102A                            44          *Compare the first 4 bits of the first OP CODE with first 4 of NOP. 
-0000102A                            45          *If equal we have a NOP instruction.Branch to 'ISNOP' and decode the rest
-0000102A  B200                      46          CMP.B   D0,D1
-0000102C  6700 0002                 47          BEQ     ISNOP
-00001030                            48          
-00001030                            49  *Decode a MOVE OP-------------------------------------------
-00001030                            50          *MOVE.B  (A0),D0     *Move the byte data at A0 into D0 (**i really want only 4 bits...)
-00001030                            51          
-00001030                            52  *Branch to correct OP-------------------------------------------        
-00001030                            53  ISNOP   
-00001030  =00004E71                 54  NOPALL  EQU $4E71   *The entire NOP instruction equals this constant hex value
-00001030  3010                      55          MOVE.W  (A0),D0 *Move the WHOLE instruction from mem into D0
-00001032                            56          *need to clear the first 4 MSB bits again, so I can compare just the last
-00001032                            57          *12 bits to the last 12 bits of the NOP instruction...
-00001032  323C 4E71                 58          MOVE.W  #NOPALL,D1 *Move the entire NOP instruction into D1
-00001036                            59          *Compare D0 to D1, if equal we found a match, print some message.
-00001036                            60          *If not equal, there was some syntax error, print error message.
-00001036  B240                      61          CMP.W   D0,D1
-00001038  6700 0004                 62          BEQ     CORRECTNOP
-0000103C  6010                      63          BRA.S   ERRORNOP
-0000103E                            64  CORRECTNOP
-0000103E                            65          *Output some message, hey we found a NOP or something...
-0000103E  43F9 0000108E             66          LEA     FOUNDNOP,A1  *Loads FOUNDNOP into address register A1
-00001044  103C 000E                 67          MOVE.B  #14,D0      *Moves the number 14 into data register D0
-00001048  4E4F                      68          TRAP    #15         *Displays Message
-0000104A  6000 0012                 69          BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
-0000104E                            70  ERRORNOP
-0000104E                            71          *Output some error message, hey incorrect NOP syntax or something...
-0000104E  43F9 000010A2             72          LEA     BADNOP,A1  *Loads BADNOP into address register A1
-00001054  103C 000E                 73          MOVE.B  #14,D0      *Moves the number 14 into data register D0
-00001058  4E4F                      74          TRAP    #15         *Displays Message
-0000105A  6000 0002                 75          BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
-0000105E                            76          
-0000105E                            77  *ISMOVE  *is a move instruction, try to decode rest. need a jsr or something to get here?
-0000105E                            78          
-0000105E                            79  *-----------------------------------------------------------        
-0000105E                            80  * End of Mini Disassembler
-0000105E                            81  *-----------------------------------------------------------    
-0000105E                            82          
-0000105E  103C 0009                 83  THEEND  MOVE.B  #9,D0
-00001062  4E4F                      84          TRAP    #15             Halt Simulator        
-00001064                            85          
-00001064  =0000000D                 86  CR      EQU     $0D             ASCII code for Carriage Return
-00001064  =0000000A                 87  LF      EQU     $0A             ASCII code for Line Feed
-00001064= 48 65 79 2C 20 67 ...     88  MESSAGE DC.B    'Hey, going to try to disassemble MOVE.B',CR,LF,0
-0000108E= 48 65 79 2C 20 66 ...     89  FOUNDNOP    DC.B    'Hey, found a NOP!',CR,LF,0
-000010A2= 48 65 79 2C 20 73 ...     90  BADNOP  DC.B    'Hey, something is wrong with this NOP!',CR,LF,0
-000010CB                            91          END     START
+0000100C  307C 7FC0                 22          MOVEA.W #START2,A0  
+00001010                            23          *Move byte data at (A0) into D0. D0 is now the first 8 bits of the first
+00001010                            24          *OP instruction from the test input file
+00001010  1010                      25          MOVE.B  (A0),D0
+00001012                            26          *Clear the first 4 bits from 8 bit value in D0. I am doing this so we retain
+00001012                            27          *just the last 4 bits. These LAST 4 bits are FIRST 4 bits the of the first OP
+00001012                            28          *CODE. By using only the first 4 bits of an instruction, we can begin to
+00001012                            29          *narrow down which particular OP code the instruction actually is!
+00001012  0880 0000                 30          BCLR.L  #$00,D0 
+00001016  0880 0001                 31          BCLR.L  #$01,D0
+0000101A  0880 0002                 32          BCLR.L  #$02,D0
+0000101E  0880 0003                 33          BCLR.L  #$03,D0
+00001022                            34          *Now I need to shift these 4 bit values right by 4 bits, so that these 4 bits
+00001022                            35          *are in the LSB position. Then I can begin to compare this value with others 
+00001022                            36          *and start decoding this OP CODE.
+00001022  E848                      37          LSR.W   #$04,D0
+00001024                            38          *Now I know the order in which the opcodes will appear, but later I will
+00001024                            39          *need to keep loading opcode data into some register and testing until we
+00001024                            40          *find a hit with the first four bits. then JSR into some subroutine.   
+00001024                            41  
+00001024                            42  *Decode a NOP OP--------------------------------------------
+00001024  123C 0004                 43          MOVE.B  #NOPOP,D1  *Load the first 4 bits (really a byte) of NOP into D1
+00001028                            44          *Compare the first 4 bits of the first OP CODE with first 4 of NOP. 
+00001028                            45          *If equal we have a NOP instruction.Branch to 'ISNOP' and decode the rest
+00001028  B200                      46          CMP.B   D0,D1
+0000102A  6700 0002                 47          BEQ     ISNOP
+0000102E                            48          
+0000102E                            49  *Decode a MOVE OP-------------------------------------------
+0000102E                            50          *MOVE.B  (A0),D0     *Move the byte data at A0 into D0 (**i really want only 4 bits...)
+0000102E                            51          
+0000102E                            52  *Branch to correct OP-------------------------------------------        
+0000102E                            53  ISNOP   
+0000102E  =00004E71                 54  NOPALL  EQU $4E71   *The entire NOP instruction equals this constant hex value
+0000102E  3010                      55          MOVE.W  (A0),D0 *Move the WHOLE instruction from mem into D0
+00001030                            56          *need to clear the first 4 MSB bits again, so I can compare just the last
+00001030                            57          *12 bits to the last 12 bits of the NOP instruction...
+00001030  323C 4E71                 58          MOVE.W  #NOPALL,D1 *Move the entire NOP instruction into D1
+00001034                            59          *Compare D0 to D1, if equal we found a match, print some message.
+00001034                            60          *If not equal, there was some syntax error, print error message.
+00001034  B240                      61          CMP.W   D0,D1
+00001036  6700 0004                 62          BEQ     CORRECTNOP
+0000103A  6010                      63          BRA.S   ERRORNOP
+0000103C                            64  CORRECTNOP
+0000103C                            65          *Output some message, hey we found a NOP or something...
+0000103C  43F9 0000108C             66          LEA     FOUNDNOP,A1 *Loads FOUNDNOP into address register A1
+00001042  103C 000E                 67          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+00001046  4E4F                      68          TRAP    #15         *Displays Message
+00001048  6000 0012                 69          BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
+0000104C                            70  ERRORNOP
+0000104C                            71          *Output some error message, hey incorrect NOP syntax or something...
+0000104C  43F9 000010A0             72          LEA     BADNOP,A1   *Loads BADNOP into address register A1
+00001052  103C 000E                 73          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+00001056  4E4F                      74          TRAP    #15         *Displays Message
+00001058  6000 0002                 75          BRA.W   THEEND  *Branch to the end, should prob jump to next instruction somehow.
+0000105C                            76          
+0000105C                            77  *ISMOVE  *is a move instruction, try to decode rest. need a jsr or something to get here?
+0000105C                            78          
+0000105C                            79  *-----------------------------------------------------------        
+0000105C                            80  * End of Mini Disassembler
+0000105C                            81  *-----------------------------------------------------------    
+0000105C                            82          
+0000105C  103C 0009                 83  THEEND  MOVE.B  #9,D0
+00001060  4E4F                      84          TRAP    #15             Halt Simulator        
+00001062                            85          
+00001062  =0000000D                 86  CR      EQU     $0D             ASCII code for Carriage Return
+00001062  =0000000A                 87  LF      EQU     $0A             ASCII code for Line Feed
+00001062= 48 65 79 2C 20 67 ...     88  MESSAGE DC.B    'Hey, going to try to disassemble MOVE.B',CR,LF,0
+0000108C= 48 65 79 2C 20 66 ...     89  FOUNDNOP    DC.B    'Hey, found a NOP!',CR,LF,0
+000010A0= 48 65 79 2C 20 73 ...     90  BADNOP  DC.B    'Hey, something is wrong with this NOP!',CR,LF,0
+000010C9                            91          END     START
 
 No errors detected
 No warnings generated
@@ -101,16 +101,16 @@ No warnings generated
 SYMBOL TABLE INFORMATION
 Symbol-name         Value
 -------------------------
-BADNOP              10A2
-CORRECTNOP          103E
+BADNOP              10A0
+CORRECTNOP          103C
 CR                  D
-ERRORNOP            104E
-FOUNDNOP            108E
-ISNOP               1030
+ERRORNOP            104C
+FOUNDNOP            108C
+ISNOP               102E
 LF                  A
-MESSAGE             1064
+MESSAGE             1062
 NOPALL              4E71
 NOPOP               4
 START               1000
 START2              7FC0
-THEEND              105E
+THEEND              105C

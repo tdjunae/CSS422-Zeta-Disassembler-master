@@ -4,22 +4,21 @@
 * Date       :2/23/2014
 * Description:Disassembles and stuff!
 *-----------------------------------------------------------
-START   ORG     $1000
+START   ORG $1000
+START2  EQU $7FC0
 
-        LEA     MESSAGE,A1      Loads MESSAGE into address register A1
-        MOVE.B  #14,D0          Moves the number 14 into data register D0
-        TRAP    #15             Displays Message
-        
+        MOVEA.W #START2,A0  *Load starting location of test input file into A0
+        LEA     MESSAGE,A1  *Loads MESSAGE into address register A1
+        MOVE.B  #14,D0      *Moves the number 14 into data register D0
+        TRAP    #15         *Displays Message
+                       
 *-----------------------------------------------------------        
 * Start of Mini Disassembler
 *-----------------------------------------------------------        
 
-START2  EQU $00007FC0
-NOPOP   EQU $04   *Store as byte, but I really only care about first 4 bits
-*MOVEOP  EQU %00 *First two bits of move are always 00
-        
-        *Load starting location of test input file into A0
-        MOVEA.L #START2,A0  
+*MOVEOP  EQU %00 *First two bits of move are always 00        
+
+GRAB_NEXT_OP
         *Move byte data at (A0) into D0. D0 is now the first 8 bits of the first
         *OP instruction from the test input file
         MOVE.B  (A0),D0
@@ -40,14 +39,18 @@ NOPOP   EQU $04   *Store as byte, but I really only care about first 4 bits
         *find a hit with the first four bits. then JSR into some subroutine.   
 
 *Decode a NOP OP--------------------------------------------
-        MOVE.B  #NOPOP,D1  *Load the first 4 bits (really a byte) of NOP into D1
+NOP_OP  EQU $04 *Store as byte, but I really only care about first 4 bits
+
+        MOVE.B  #NOP_OP,D1  *Load the first 4 bits (really a byte) of NOP into D1
         *Compare the first 4 bits of the first OP CODE with first 4 of NOP. 
-        *If equal we have a NOP instruction.Branch to 'ISNOP' and decode the rest
+        *If equal we have a NOP instruction. Branch to 'ISNOP' and decode the rest.
         CMP.B   D0,D1
         BEQ     ISNOP
         
 *Decode a MOVE OP-------------------------------------------
         *MOVE.B  (A0),D0     *Move the byte data at A0 into D0 (**i really want only 4 bits...)
+        
+        JMP     GRAB_NEXT_OP    *goto next op in memory
         
 *Branch to correct OP-------------------------------------------        
 ISNOP   
