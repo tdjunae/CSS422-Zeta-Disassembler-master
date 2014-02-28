@@ -26,10 +26,10 @@ GRAB_NEXT_OP
         *just the last 4 bits. These LAST 4 bits are FIRST 4 bits the of the first OP
         *CODE. By using only the first 4 bits of an instruction, we can begin to
         *narrow down which particular OP code the instruction actually is!
-        BCLR.L  #$00,D0 
-        BCLR.L  #$01,D0
-        BCLR.L  #$02,D0
-        BCLR.L  #$03,D0
+        *BCLR.L  #$00,D0 
+        *BCLR.L  #$01,D0
+        *BCLR.L  #$02,D0
+        *BCLR.L  #$03,D0
         *Now I need to shift these 4 bit values right by 4 bits, so that these 4 bits
         *are in the LSB position. Then I can begin to compare this value with others 
         *and start decoding this OP CODE.
@@ -96,6 +96,7 @@ FOUNDNOP    DC.B    'Hey, found a NOP!',CR,LF,0
 BADNOP  DC.B    'Hey, something is wrong with this NOP!',CR,LF,0
         END     START
         
+
 
 *~Font name~Courier New~
 *~Font size~10~
