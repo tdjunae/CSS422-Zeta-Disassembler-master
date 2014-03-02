@@ -1,0 +1,290 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.14.00
+Created On: 3/1/2014 8:14:25 PM
+
+00000000                             1  *-------------------------------------------------------------
+00000000                             2  * Title      :Team Zeta 68k Disassembler, CSS 422 Winter 2014
+00000000                             3  * Written by :Brandon Roth, Dwayne Honeycutt, Teresia Djunaedi
+00000000                             4  * Date       :3/1/2014
+00000000                             5  * Description:
+00000000                             6  * This program disassembles a subset of 68k
+00000000                             7  * assembly instructions. *visit this later, describe what it 
+00000000                             8  * does, how to use it, assumptions, etc.
+00000000                             9  *-------------------------------------------------------------
+00000000                            10  
+00001000                            11  START   ORG $1000   *Start program at provided location
+00001000  =00007FC0                 12  ST_ADDR EQU $7FC0   *Starting address of input test file
+00001000  =00007000                 13  STACK   EQU $7000   *Stack location
+00001000                            14  
+00001000  307C 7FC0                 15          MOVEA.W #ST_ADDR,A0 *Load starting location of test input file into A0
+00001004  43F9 0000106A             16          LEA     MESSAGE,A1  *Loads MESSAGE into address register A1
+0000100A  103C 000E                 17          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+0000100E  4E4F                      18          TRAP    #15         *Displays Message
+00001010                            19          
+00001010                            20  *-----------------------------------------------------------        
+00001010                            21  * Start of Disassembler
+00001010                            22  *-----------------------------------------------------------        
+00001010                            23  
+00001010                            24  GRAB_NEXT_OP
+00001010                            25          *Move word data at (A0) into D0. D0 should now hold the entire 16 bits of the
+00001010                            26          *next OP CODE instruction to disassemble, EXCLUDING any immediate/absolute 
+00001010                            27          *data that may be associated with the instruction.
+00001010  4280                      28          CLR.L   D0
+00001012  3018                      29          MOVE.W  (A0)+,D0
+00001014                            30          *Copy the word data we just moved into D0 into D7. We are copying this data
+00001014                            31          *So we always have a copy of the WHOLE instruction somewhere
+00001014  3E00                      32          MOVE.W  D0,D7
+00001016                            33          *Now shift D0 to the right by 12 bit values, so that we can isolate the first
+00001016                            34          *four bits of the instruction. Once we have just the first four bits, we can
+00001016                            35          *begin to see which 'bucket'/category this instruction falls into. 
+00001016  E048                      36          LSR.W   #$08,D0 *The max we can shift at once is 8 bits...
+00001018  E848                      37          LSR.W   #$04,D0
+0000101A                            38          *Now try to figure out what OP CODE this is using these 4 bits. Run down the
+0000101A                            39          *list of buckets until we find which one this instruction falls into.
+0000101A                            40  
+0000101A                            41  
+0000101A                            42  *STARTS WITH 0000, ADDI | ANDI | EORI | BCHG | CMPI---------
+0000101A                            43  BUCKET_0000
+0000101A  =00000000                 44  BUCKET0_BITS    EQU $0  *INITIALLY THIS WAS A BYTE, WILL THIS BREAK AS 4 BITS?
+0000101A                            45  
+0000101A  4281                      46          CLR.L   D1
+0000101C                            47          *Load the first 4 bits (really a byte) of BUCKET0 into D1
+0000101C  123C 0000                 48          MOVE.B  #BUCKET0_BITS,D1  
+00001020                            49          *Compare the first 4 bits of the CURRENT instruction with first 4 of BUCKET0. 
+00001020                            50          *If equal, continue decoding. If not, branch to next bucket.
+00001020  B200                      51          CMP.B   D0,D1
+00001022  6600 001A                 52          BNE     BUCKET_0001
+00001026                            53          
+00001026                            54          *Check the next four bits in the instruction, branch to different subsets 
+00001026                            55          *depending on what the bits equal
+00001026  3001                      56          MOVE.W  D1,D0   *Move the WHOLE instruction back to D0
+00001028                            57          *TODO:
+00001028                            58          *Somehow get just bits 11-8 from this word
+00001028                            59          *Perform compares with these 4 bits to see which specific instruction it is.
+00001028                            60          *If we get through all of the if's without finding the specific instruction,
+00001028                            61          *then this instruction is either not in our list of OP CODES to decode, or
+00001028                            62          *is an invalid instruction/syntax.
+00001028                            63          *If invalid, jump to BADOPCODE, where i/o will take care of it.
+00001028                            64          
+00001028  4EF9 00001044             65          JMP     BADOPCODE  
+0000102E                            66  
+0000102E                            67  
+0000102E                            68  *Now we know this instruction is exactly ADDI, lets set everything up for EA.
+0000102E                            69  *THIS IS STILL PART OF OPCODES RESPONSIBILITY
+0000102E                            70  ISADDI
+0000102E                            71          *Output some message, hey we found an ADDI instruction or something...
+0000102E  43F9 00001085             72          LEA     FNDADDI,A1  *Loads FNDADDI into address register A1
+00001034  103C 000E                 73          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+00001038  4E4F                      74          TRAP    #15         *Displays Message
+0000103A  4EF8 1010                 75          JMP     GRAB_NEXT_OP    *Jump and go to the next instruction
+0000103E                            76          *some code setting up registers/data for EA to disect and verify
+0000103E                            77  
+0000103E                            78  *THIS IS AN 'EAFUNC', EA'S RESPONSIBILITY  
+0000103E                            79  EAADDI
+0000103E                            80          *some code verifiying the integrity/syntax of the EA bits of the instruction
+0000103E                            81          *if bad EA, jump to BADEACODE, where i/o will take care of it
+0000103E                            82          
+0000103E                            83          *make sure when you leave an EA func that you also read in and either use
+0000103E                            84          *or ignore immediate/absoluate data, so that we can we ready to start reading
+0000103E                            85          *in the next instruction.
+0000103E                            86  
+0000103E                            87  
+0000103E                            88  *Now we know this instruction is exactly ANDI, lets set everything up for EA.
+0000103E                            89  ISANDI
+0000103E                            90  EAANDI
+0000103E                            91  
+0000103E                            92  
+0000103E                            93  *Now we know this instruction is exactly EORI, lets set everything up for EA.
+0000103E                            94  ISEORI
+0000103E                            95  EAEORI
+0000103E                            96  
+0000103E                            97  
+0000103E                            98  *Now we know this instruction is exactly BCHG, lets set everything up for EA.
+0000103E                            99  ISBCHG
+0000103E                           100  EABCHG
+0000103E                           101  
+0000103E                           102  
+0000103E                           103  *Now we know this instruction is exactly CMPI, lets set everything up for EA.
+0000103E                           104  ISCMPI
+0000103E                           105  EACMPI
+0000103E                           106  
+0000103E                           107  
+0000103E                           108  *STARTS WITH 0001, MOVE.B-----------------------------------
+0000103E                           109  BUCKET_0001
+0000103E                           110          
+0000103E                           111          
+0000103E                           112          *some code...
+0000103E                           113  
+0000103E                           114  
+0000103E                           115  *STARTS WITH 0010, MOVE.L-----------------------------------
+0000103E                           116  BUCKET_0010
+0000103E                           117          
+0000103E                           118  
+0000103E                           119          *some code...
+0000103E                           120  
+0000103E                           121  
+0000103E                           122  *STARTS WITH 0011, MOVE.W-----------------------------------
+0000103E                           123  BUCKET_0011
+0000103E                           124          
+0000103E                           125  
+0000103E                           126          *some code...
+0000103E                           127  
+0000103E                           128  
+0000103E                           129  *STARTS WITH 0100, MOVEM | MULS(L) | LEA | CLR | JSR | RTS--
+0000103E                           130  BUCKET_0100
+0000103E                           131          
+0000103E                           132  
+0000103E                           133          *some code...
+0000103E                           134  
+0000103E                           135  
+0000103E                           136  *STARTS WITH 0101, SUBQ-------------------------------------
+0000103E                           137  BUCKET_0101
+0000103E                           138          
+0000103E                           139  
+0000103E                           140          *some code...
+0000103E                           141  
+0000103E                           142  
+0000103E                           143  *STARTS WITH 0110, BCC--------------------------------------
+0000103E                           144  BUCKET_0110
+0000103E                           145          
+0000103E                           146  
+0000103E                           147          *some code...
+0000103E                           148  
+0000103E                           149  
+0000103E                           150  *STARTS WITH 1000, DIVU-------------------------------------
+0000103E                           151  BUCKET_1000
+0000103E                           152          
+0000103E                           153  
+0000103E                           154          *some code...
+0000103E                           155  
+0000103E                           156  
+0000103E                           157  *STARTS WITH 1001, SUBA-------------------------------------
+0000103E                           158  BUCKET_1001
+0000103E                           159          
+0000103E                           160  
+0000103E                           161          *some code...
+0000103E                           162  
+0000103E                           163  
+0000103E                           164  *STARTS WITH 1011, EOR | CMP | CMPA-------------------------
+0000103E                           165  BUCKET_1011
+0000103E                           166          
+0000103E                           167  
+0000103E                           168          *some code...
+0000103E                           169  
+0000103E                           170  
+0000103E                           171  *STARTS WITH 1100, MULS(W) | AND----------------------------
+0000103E                           172  BUCKET_1100
+0000103E                           173          
+0000103E                           174  
+0000103E                           175          *some code...
+0000103E                           176  
+0000103E                           177  
+0000103E                           178  *STARTS WITH 1101, ADD | ADDA-------------------------------
+0000103E                           179  BUCKET_1101
+0000103E                           180          
+0000103E                           181  
+0000103E                           182          *some code...
+0000103E                           183  
+0000103E                           184  
+0000103E                           185  *STARTS WITH 1110, ASR(REGSHIFT) | ASR(MEMSHIFT)------------
+0000103E                           186  *                  LSL(REGSHIFT) | LSL(MEMSHIFT)------------
+0000103E                           187  *                  ROL/ROR(REGROTATE) | ROLS/ROR(MEMROTATE)-
+0000103E                           188  BUCKET_1110
+0000103E                           189          
+0000103E                           190  
+0000103E                           191          *some code...
+0000103E                           192  
+0000103E                           193  
+0000103E                           194  *The given OP CODE doesn't fall into any buckets, this is an invalid opcode
+0000103E                           195  *for this disassembler, jump to BADOPCODE and let I/O take care of it
+0000103E  4EF9 00001044            196          JMP     BADOPCODE  
+00001044                           197          
+00001044                           198          
+00001044                           199  BADOPCODE
+00001044                           200          *We found a bad op code, output some error to the screen, jump to the 
+00001044                           201          *next instruction in memory.
+00001044                           202          *NOTE: IF THIS INSTRUCTION HAD IMMEDIATE OR ABSOLUTE DATA ATTACHED TO IT,
+00001044                           203          *THEN WE WILL NEED SOME WAY TO FIGURE THAT OUT AND READ THROUGH THAT DATA.
+00001044                           204          *OTHERWISE, THE NEXT OP WILL TRY TO TREAT THAT IMMEDIATE/ABSOULTE DATA AS
+00001044                           205          *A LEGIT INSTRUCTION, NOT GARBAGE!!!
+00001044                           206          *i/o and error message code...
+00001044  43F9 000010AC            207          LEA     BADOPMSG,A1 *Loads BADOPMSG into address register A1        
+0000104A  103C 000E                208          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+0000104E  4E4F                     209          TRAP    #15         *Displays Message
+00001050  4EF8 1010                210          JMP     GRAB_NEXT_OP
+00001054                           211          
+00001054                           212          
+00001054                           213  BADEACODE
+00001054                           214          *We found a bad ea code, output some error to the screen, jump to the
+00001054                           215          *next instruction in memory.
+00001054                           216          *NOTE: WE SHOULDN'T HAVE TO WORRY ABOUT GARBAGE IMMEDAIATE/ABSOLUTE DATA
+00001054                           217          *HERE, EACH EA FUNC SHOULD HAVE TAKEN CARE OF THAT BEFORE JUMPIN TO THIS FUNC        
+00001054  43F9 0000109C            218          LEA     BADEAMSG,A1 *Loads BADEAMSG into address register A1        
+0000105A  103C 000E                219          MOVE.B  #14,D0      *Moves the number 14 into data register D0
+0000105E  4E4F                     220          TRAP    #15         *Displays Message
+00001060  4EF8 1010                221          JMP     GRAB_NEXT_OP
+00001064                           222          
+00001064                           223          
+00001064                           224  *-----------------------------------------------------------        
+00001064                           225  * End of Disassembler
+00001064                           226  *-----------------------------------------------------------    
+00001064                           227    
+00001064  103C 0009                228  THEEND  MOVE.B  #9,D0
+00001068  4E4F                     229          TRAP    #15             Halt Simulator        
+0000106A                           230          
+0000106A  =0000000D                231  CR      EQU     $0D             ASCII code for Carriage Return
+0000106A  =0000000A                232  LF      EQU     $0A             ASCII code for Line Feed
+0000106A= 53 74 61 72 74 69 ...    233  MESSAGE     DC.B    'Starting disassembler...',CR,LF,0
+00001085                           234  
+00001085= 46 6F 75 6E 64 20 ...    235  FNDADDI     DC.B    'Found an ADDI opcode',CR,LF,0
+0000109C                           236  *for now, i guess every OPCODE will have a corresponding 'found it' msg...
+0000109C                           237  
+0000109C= 42 41 44 20 45 41 ...    238  BADEAMSG    DC.B    'BAD EA, WHY?!',CR,LF,0
+000010AC= 42 41 44 20 4F 50 ...    239  BADOPMSG    DC.B    'BAD OP CODE, WHY?!',CR,LF,0
+000010C1                           240          
+000010C1                           241          END     START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BADEACODE           1054
+BADEAMSG            109C
+BADOPCODE           1044
+BADOPMSG            10AC
+BUCKET0_BITS        0
+BUCKET_0000         101A
+BUCKET_0001         103E
+BUCKET_0010         103E
+BUCKET_0011         103E
+BUCKET_0100         103E
+BUCKET_0101         103E
+BUCKET_0110         103E
+BUCKET_1000         103E
+BUCKET_1001         103E
+BUCKET_1011         103E
+BUCKET_1100         103E
+BUCKET_1101         103E
+BUCKET_1110         103E
+CR                  D
+EAADDI              103E
+EAANDI              103E
+EABCHG              103E
+EACMPI              103E
+EAEORI              103E
+FNDADDI             1085
+GRAB_NEXT_OP        1010
+ISADDI              102E
+ISANDI              103E
+ISBCHG              103E
+ISCMPI              103E
+ISEORI              103E
+LF                  A
+MESSAGE             106A
+STACK               7000
+START               1000
+ST_ADDR             7FC0
+THEEND              1064

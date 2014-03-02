@@ -1,0 +1,29 @@
+00007FC0 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.14.00
+Created On: 3/1/2014 8:12:11 PM
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :Brandon's Mini Disassembler Input
+00000000                             3  * Written by :Brandon Roth
+00000000                             4  * Date       :2/23/2014
+00000000                             5  * Description:***
+00000000                             6  *-----------------------------------------------------------
+00007FC0                             7  START   ORG $7FC0
+00007FC0                             8  
+00007FC0                             9          *BUCKET0 TEST INSTRUCTIONS
+00007FC0  0600 000C                 10          ADDI.B  #12,D0
+00007FC4                            11          *ANDI
+00007FC4                            12          *EORI
+00007FC4                            13          *BCHG
+00007FC4                            14          *CMPI     
+00007FC4                            15          
+00007FC4                            16          END START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+START               7FC0
