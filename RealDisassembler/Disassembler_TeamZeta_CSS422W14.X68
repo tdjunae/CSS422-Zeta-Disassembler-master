@@ -26,6 +26,8 @@ GRAB_NEXT_OP
         *next OP CODE instruction to disassemble, EXCLUDING any immediate/absolute 
         *data that may be associated with the instruction.
         CLR.L   D0
+        *Post increment addr, A0 will point to the start of next instruction or will 
+        *point to the start of any immed/abso data with this current instruction
         MOVE.W  (A0)+,D0
         *Copy the word data we just moved into D0 into D7. We are copying this data
         *So we always have a copy of the WHOLE instruction somewhere
@@ -39,7 +41,8 @@ GRAB_NEXT_OP
         *list of buckets until we find which one this instruction falls into.
 
 
-*STARTS WITH 0000, ADDI | ANDI | EORI | BCHG | CMPI---------
+*STARTS WITH 0000, ADDI | ANDI | EORI-----------------------
+*                  BCHG(dynamic) | BCHG (static) | CMPI-----
 BUCKET_0000
 BUCKET0_BITS    EQU $0
 
@@ -50,12 +53,16 @@ BUCKET0_BITS    EQU $0
         *If equal, continue decoding. If not, branch to next bucket.
         CMP.B   D0,D1
         BNE     BUCKET_0001
+
+        *Test the 8th bit in this instruction, if it is 1, then it is a BCHG(dynamic) 
+        *The zbit will be 1 if the bit is 0, and 0 if the bit is 1. 
+        MOVE.W  D7,D0   *Move the WHOLE instruction back to D0
+        BTST.L  #$08,D0
+        BNE     IS_BCHG_D  *If the zbit was 0 (the 8th bit is 1), branch to ISBCHG_D
         
+        *TODO:
         *Check the next four bits in the instruction, branch to different subsets 
         *depending on what the bits equal
-        MOVE.W  D7,D0   *Move the WHOLE instruction back to D0
-        *TODO:
-        *Somehow get just bits 11-8 from this word
         *Perform compares with these 4 bits to see which specific instruction it is.
         *If we get through all of the if's without finding the specific instruction,
         *then this instruction is either not in our list of OP CODES to decode, or
@@ -66,16 +73,17 @@ BUCKET0_BITS    EQU $0
 
 *Now we know this instruction is exactly ADDI, lets set everything up for EA.
 *THIS IS STILL PART OF OPCODES RESPONSIBILITY
-ISADDI
+IS_ADDI
         *Output some message, hey we found an ADDI instruction or something...
         LEA     FNDADDI,A1  *Loads FNDADDI into address register A1
         MOVE.B  #14,D0      *Moves the number 14 into data register D0
         TRAP    #15         *Displays Message
         JMP     GRAB_NEXT_OP    *Jump and go to the next instruction
+        
         *some code setting up registers/data for EA to disect and verify
 
 *THIS IS AN 'EAFUNC', EA'S RESPONSIBILITY  
-EAADDI
+EA_ADDI
         *some code verifiying the integrity/syntax of the EA bits of the instruction
         *if bad EA, jump to BADEACODE, where i/o will take care of it
         
@@ -85,23 +93,46 @@ EAADDI
 
 
 *Now we know this instruction is exactly ANDI, lets set everything up for EA.
-ISANDI
-EAANDI
+IS_ANDI
+EA_ANDI
 
 
 *Now we know this instruction is exactly EORI, lets set everything up for EA.
-ISEORI
-EAEORI
+IS_EORI
+EA_EORI
 
 
-*Now we know this instruction is exactly BCHG, lets set everything up for EA.
-ISBCHG
-EABCHG
+*Found a possible BCHG(dynamic) instruction. Verify its bit integrity and then set
+* everything up for EA if is a legit instruction. Assuming D0 holds full instruction.
+IS_BCHG_D
+        *Check bits 7 and 6, these should be 0 and 1. If not, this instruction is
+        *invalid, branch to BADOPCODE    
+        BTST.L  #$07,D0
+        BNE     BADOPCODE  *If the zbit was 0 (the 7th bit is 1), branch to BADOPCODE
+        BTST.L  #$06,D0
+        BEQ     BADOPCODE  *If the zbit was 1 (the 6th bit is 0), branch to BADOPCODE
+        
+        *Output a message, hey we found a BCHG(dynamic) instruction...
+        LEA     FNDBCHG_D,A1    *Loads FNDBCHG_D into address register A1
+        MOVE.B  #14,D0          *Moves the number 14 into data register D0
+        TRAP    #15             *Displays Message
+                
+        *Should have a valid BCHG(dynamic) instruction. Set data up for EA.
+        *TODO:
+        MOVE.B  #14,D3
+        JMP     EA_BCHG_D
+
+EA_BCHG_D
+
+
+*Now we know this instruction is exactly BCHG(static), lets set everything up for EA.
+IS_BCHG_S
+EA_BCHG_S
 
 
 *Now we know this instruction is exactly CMPI, lets set everything up for EA.
-ISCMPI
-EACMPI
+IS_CMPI
+EA_CMPI
 
 
 *STARTS WITH 0001, MOVE.B-----------------------------------
@@ -231,6 +262,7 @@ LF      EQU     $0A             ASCII code for Line Feed
 MESSAGE     DC.B    'Starting disassembler...',CR,LF,0
 
 FNDADDI     DC.B    'Found an ADDI opcode',CR,LF,0
+FNDBCHG_D   DC.B    'Found a BCHG(dynamic) opcode',CR,LF,0
 *for now, i guess every OPCODE will have a corresponding 'found it' msg...
 
 BADEAMSG    DC.B    'BAD EA, WHY?!',CR,LF,0
@@ -238,6 +270,7 @@ BADOPMSG    DC.B    'BAD OP CODE, WHY?!',CR,LF,0
         
         END     START
         
+
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~

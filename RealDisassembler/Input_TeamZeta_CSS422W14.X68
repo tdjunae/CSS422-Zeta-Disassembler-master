@@ -7,7 +7,8 @@
 START   ORG $7FC0
 
         *BUCKET0 TEST INSTRUCTIONS
-        ADDI.B  #12,D0
+        BCHG.L  D0,D1   
+        ADDI.B  #12,D1
         *ANDI
         *EORI
         *BCHG
@@ -15,6 +16,7 @@ START   ORG $7FC0
         
         END START
         
+
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~
